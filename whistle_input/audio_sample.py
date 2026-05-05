@@ -2,12 +2,13 @@ import sounddevice as sd
 import numpy as np
 import pyqtgraph as pg
 
-
 # Set up audio stream
 # reduce chunk size and sampling rate for lower latency
 CHUNK_SIZE = 1024 # Number of audio frames per buffer
 RATE = 44100 # Audio sampling rate (HZ)
 CHANNELS = 1 # Mono audio
+
+data=[]
 
 # print info about audio devices
 print("Available input devices:\n")
@@ -22,27 +23,13 @@ for i, dev in enumerate(devices):
 # let user select audio device
 input_device = int(input("\nSelect input device: "))
 
-
-# set up interactive plot
-app = pg.mkQApp("Audio Visualizer")
-
-win = pg.GraphicsLayoutWidget(title="Live Audio")
-plot = win.addPlot()
-plot.setYRange(-1, 1)
-
-curve = plot.plot(pen='w')
-
-win.show()
-
-
 # audio callback to safe data
 def audio_callback(indata, frames, time, status):
+    global data
     if status:
         print(status)
 
     data = indata[:, 0]  # mono
-    curve.setData(data)
-
 
 # open audio input stream
 stream = sd.InputStream(
@@ -54,8 +41,35 @@ stream = sd.InputStream(
     latency='low'
 )
 
+def getFrequency():
+    global data
 
-# continously capture and plot audio signal
-with stream:
-    print("\nStreaming... (Ctrl+C to stop)")
-    pg.exec()
+    signal = np.frombuffer(data, dtype=np.int16)
+
+    if signal is None or len(signal) == 0:
+        return 0
+    
+    # Apply window (important for cleaner FFT)
+    #window = np.hanning(len(signal))
+    #signal = signal * window
+
+    # FFT
+    yf = np.fft.fft(signal)
+    xf = np.fft.fftfreq(len(signal), 1 / RATE)
+
+    # Only positive frequencies
+    magnitudes = np.abs(yf[:len(yf)//2])
+    freqs = xf[:len(xf)//2]
+
+    # Find dominant frequency
+    dominant_freq = freqs[np.argmax(magnitudes)]
+
+    if dominant_freq < 50 or dominant_freq > 1000:
+        return 0
+
+    #print(dominant_freq)
+    return dominant_freq
+
+
+stream.start()
+print("\nStreaming...")

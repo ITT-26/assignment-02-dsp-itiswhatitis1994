@@ -4,7 +4,7 @@
 - Install the necessary libraries from the requirements.txt
 - if you are using VSCode,  you can simply press "play" after making sure that you are in the virtual environment
 # Task 1
-- 
+- sadly was only able to finish frequency detection which makes the player move up and down the screen depending on the frequency.
 # Task 2
 - choose the correct audio input device in the command prompt
 - short whistles will move the selection up or down one item
